@@ -122,19 +122,19 @@ enum VehicleOperationalStatus {
 // Models
 
 model User {
-  userId    String   @id @default(uuid())
-  name      String?
-  email     String   @unique
-  password  String?
-  phone     String?
-  role      Role     @default(USER)
-  isActive  Boolean  @default(true)
-  isVerified Boolean @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId     String   @id @default(uuid())
+  name       String?
+  email      String   @unique
+  password   String?
+  phone      String?
+  role       Role     @default(USER)
+  isActive   Boolean  @default(true)
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  vehicle Vehicle[]
-  alerts  Alert[]
+  vehicle          Vehicle[]
+  alerts           Alert[]
   otpVerifications OTPVerification[]
 
   @@index([email])
@@ -161,6 +161,7 @@ model Vehicle {
   healthRecords  HealthPrediction[]
   alerts         Alert[]
   vehicleApiKeys VehicleApiKey[]
+  telemetry2     Telemtery2[]
 
   @@index([userId])
 }
@@ -234,7 +235,7 @@ model Recommendation {
 model Alert {
   alertId      String        @id @default(uuid())
   vehicleId    String
-  predictionId String
+  predictionId String?
   alertType    String?
   severity     AlertSeverity
   title        String
@@ -243,9 +244,9 @@ model Alert {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  vehicle          Vehicle          @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
-  healthPrediction HealthPrediction @relation(fields: [predictionId], references: [predictionId], onDelete: Cascade)
-  user             User?            @relation(fields: [userUserId], references: [userId])
+  vehicle          Vehicle           @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
+  healthPrediction HealthPrediction? @relation(fields: [predictionId], references: [predictionId], onDelete: Cascade)
+  user             User?             @relation(fields: [userUserId], references: [userId])
   userUserId       String?
 
   @@index([vehicleId])
@@ -288,7 +289,7 @@ model OTPVerification {
   isUsed    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user User? @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [userId], onDelete: Cascade)
   userId String?
 
   @@index([email, otp])
@@ -314,30 +315,65 @@ model ContactMessage {
 
 // Round 2 Telemetry Table (separate from original Telemetry)
 model Telemtery2 {
-  id                 Int      @id @default(autoincrement())
-  vehicleId          String
-  source             String?
-  engineRpm          Float?
-  lubOilPressure     Float?
-  fuelPressure       Float?
-  coolantPressure    Float?
-  lubOilTemp         Float?
-  coolantTemp        Float?
-  engineTemp         Float?
-  rpm                Float?
-  batteryVoltage     Float?
-  oilPressure        Float?
-  mileage            Float?
-  vibrationLevel     Float?
-  fuelEfficiency     Float?
-  errorCodesCount    Int?
-  coolantLevel       Float?
+  id String @id @default(uuid())
+
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
+
+  source TelemetrySource?
+
+  // Engine metrics
+  engineRpm        Float?
+  rpm              Float?
+  engineLoad       Float?
+  throttlePosition Float?
+  engineTemp       Float?
+
+  // Oil system
+  lubOilPressure Float?
+  oilPressure    Float?
+  lubOilTemp     Float?
+
+  // Cooling system
+  coolantTemp     Float?
+  coolantPressure Float?
+  coolantLevel    Float?
+
+  // Fuel system
+  fuelPressure   Float?
+  fuelEfficiency Float?
+
+  // Electrical
+  batteryVoltage Float?
+
+  // Vehicle movement
+  speed   Float?
+  mileage Float?
+
+  // Mechanical health
+  vibrationLevel Float?
+
+  // Environment
   ambientTemperature Float?
-  recordedAt         DateTime
-  receivedAt         DateTime @default(now())
-  rawPayload         Json
+
+  // Diagnostics
+  errorCodesCount  Int?
+  activeFaultCodes Json?
+
+  // EV metrics
+  batteryStateOfCharge Float?
+  batteryTemp          Float?
+  motorTemp            Float?
+  inverterTemp         Float?
+
+  recordedAt DateTime
+  receivedAt DateTime @default(now())
+
+  rawPayload Json
 
   @@index([vehicleId, recordedAt])
+  @@index([vehicleId, receivedAt])
   @@index([receivedAt])
+
   @@map("Telemtery2")
 }

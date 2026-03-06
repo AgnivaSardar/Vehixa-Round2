@@ -1,35 +1,32 @@
 const { prisma } = require("../../config/db");
+const { runFaultEngine } = require("../../../services/faultEngine");
 
 const firstDefined = (...values) =>
   values.find((value) => value !== undefined && value !== null);
 
 const toNumber = (value) => {
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-
-  const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? numericValue : null;
+  if (value === undefined || value === null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 };
 
 const toInteger = (value) => {
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-
-  const numericValue = Number(value);
-  return Number.isInteger(numericValue)
-    ? numericValue
-    : Math.round(numericValue);
+  if (value === undefined || value === null || value === "") return null;
+  const n = Number(value);
+  return Number.isInteger(n) ? n : Math.round(n);
 };
+
+function getSeverity(alertCode) {
+  if (alertCode.includes("CRITICAL")) return "CRITICAL";
+  if (alertCode.includes("WARNING")) return "HIGH";
+  return "MEDIUM";
+}
 
 const normalizePayload = (payload) => {
   const vehicleId =
     typeof payload.vehicleId === "string" ? payload.vehicleId.trim() : "";
 
-  if (!vehicleId) {
-    return { error: "vehicleId is required" };
-  }
+  if (!vehicleId) return { error: "vehicleId is required" };
 
   const recordedAtInput = payload.recordedAt
     ? new Date(payload.recordedAt)
@@ -39,7 +36,6 @@ const normalizePayload = (payload) => {
     ? new Date()
     : recordedAtInput;
 
-  // Core metrics
   const engineRpm = toNumber(
     firstDefined(payload.engine_rpm, payload.engineRpm, payload.rpm)
   );
@@ -75,7 +71,7 @@ const normalizePayload = (payload) => {
       source:
         typeof payload.source === "string" && payload.source.trim()
           ? payload.source.trim()
-          : "EDGE_INPUT",
+          : "API_PUSH",
 
       engineRpm,
       lubOilPressure,
@@ -132,16 +128,77 @@ const telemetryService = {
     const normalized = normalizePayload(payload);
 
     if (normalized.error) {
-      const error = new Error(normalized.error);
-      error.statusCode = 400;
-      throw error;
+      const err = new Error(normalized.error);
+      err.statusCode = 400;
+      throw err;
     }
 
     const telemetry = await prisma.telemtery2.create({
       data: normalized.data,
     });
 
-    return telemetry;
+    const faultResult = await runFaultEngine(prisma, telemetry);
+
+    const createdAlerts = [];
+
+    // METRIC ALERTS
+    for (const alertCode of faultResult.metricAlerts || []) {
+
+      const existing = await prisma.alert.findFirst({
+        where: {
+          vehicleId: telemetry.vehicleId,
+          title: alertCode,
+          isResolved: false,
+        },
+      });
+
+      if (!existing) {
+        const alert = await prisma.alert.create({
+          data: {
+            vehicleId: telemetry.vehicleId,
+            severity: getSeverity(alertCode),
+            title: alertCode,
+            message: `Metric alert detected: ${alertCode}`,
+            predictionId: null,
+          },
+        });
+
+        createdAlerts.push(alert);
+      }
+    }
+
+    // SYSTEM FAULT
+    if (faultResult.systemFault) {
+
+      const existing = await prisma.alert.findFirst({
+        where: {
+          vehicleId: telemetry.vehicleId,
+          title: faultResult.systemFault,
+          isResolved: false,
+        },
+      });
+
+      if (!existing) {
+        const alert = await prisma.alert.create({
+          data: {
+            vehicleId: telemetry.vehicleId,
+            severity: faultResult.severity || "CRITICAL",
+            title: faultResult.systemFault,
+            message: `System fault detected: ${faultResult.systemFault}`,
+            predictionId: null,
+          },
+        });
+
+        createdAlerts.push(alert);
+      }
+    }
+
+    return {
+      telemetry,
+      metricAlerts: faultResult.metricAlerts,
+      systemFault: faultResult.systemFault,
+      alertsCreated: createdAlerts.length,
+    };
   },
 
   async list(options = {}) {

@@ -5,16 +5,21 @@ const router = express.Router();
 
 router.post("/", async (req, res, next) => {
   try {
-    const telemetry = await telemetryService.ingest(req.body || {});
+
+    const result = await telemetryService.ingest(req.body || {});
 
     console.log(
-      `[telemetry] vehicle=${telemetry.vehicleId} source=${telemetry.source} recordedAt=${telemetry.recordedAt.toISOString()}`
+      `[telemetry] vehicle=${result.telemetry.vehicleId} recordedAt=${result.telemetry.recordedAt.toISOString()} alerts=${result.alertsCreated}`
     );
 
     res.status(201).json({
-      message: "Telemetry received and stored",
-      telemetry,
+      message: "Telemetry received and processed",
+      telemetry: result.telemetry,
+      metricAlerts: result.metricAlerts,
+      systemFault: result.systemFault,
+      alertsCreated: result.alertsCreated
     });
+
   } catch (error) {
     next(error);
   }
@@ -22,6 +27,7 @@ router.post("/", async (req, res, next) => {
 
 router.get("/", async (req, res, next) => {
   try {
+
     const telemetryList = await telemetryService.list({
       vehicleId: req.query.vehicleId,
       limit: req.query.limit,
@@ -29,8 +35,9 @@ router.get("/", async (req, res, next) => {
 
     res.status(200).json({
       count: telemetryList.length,
-      telemetry: telemetryList,
+      telemetry: telemetryList
     });
+
   } catch (error) {
     next(error);
   }
@@ -38,15 +45,17 @@ router.get("/", async (req, res, next) => {
 
 router.get("/latest", async (req, res, next) => {
   try {
+
     const latest = await telemetryService.latest(req.query.vehicleId);
 
     if (!latest) {
       return res.status(404).json({ message: "No telemetry found" });
     }
 
-    return res.status(200).json({ telemetry: latest });
+    res.status(200).json({ telemetry: latest });
+
   } catch (error) {
-    return next(error);
+    next(error);
   }
 });
 
