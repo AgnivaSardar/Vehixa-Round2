@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "node src/server.js",
     "build": "node scripts/build.js",
+    "build:render": "npm ci --include=dev && npm run db:generate && npm run build",
     "start": "node src/server.js",
     "start:dist": "node dist/server.js",
     "simulator": "node src/simulator/vehicleRecorderSimulator.js",
     "simulator:control": "node src/simulator/realtimeControlSimulator.js",
+    "postinstall": "npm run db:generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev --name init"

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: round2-backend
+    env: node
+    plan: free
+    buildCommand: npm run build:render
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: NODE_ENV
+        value: production
