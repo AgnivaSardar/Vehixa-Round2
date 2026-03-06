@@ -46,7 +46,7 @@ const METRIC_RULES = {
 
 const defaultTargetUrl =
   process.env.SIMULATOR_TARGET_URL ||
-  `http://localhost:${env.PORT}${env.API_PREFIX}/telemetry`;
+  "https://vehixa-round2.onrender.com/api/v1/telemetry";
 
 const state = {
   targetUrl: defaultTargetUrl,

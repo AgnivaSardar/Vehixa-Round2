@@ -82,7 +82,7 @@ const displayProgressBar = (percent) => {
 const runContinuousSimulator = async () => {
   const targetUrl =
     process.env.SIMULATOR_TARGET_URL ||
-    `http://localhost:${env.PORT}${env.API_PREFIX}/telemetry`;
+    "https://vehixa-round2.onrender.com/api/v1/telemetry";
 
   const vehicleId =
     process.env.SIMULATOR_VEHICLE_ID || "81609e52-0b40-4b54-a891-2b0adb813c7b"; // Honda City
