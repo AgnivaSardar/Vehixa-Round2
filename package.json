@@ -22,6 +22,7 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "prisma": "^6.19.2"

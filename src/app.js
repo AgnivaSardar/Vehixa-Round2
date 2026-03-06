@@ -1,10 +1,28 @@
 const express = require("express");
+const cors = require("cors");
 const { env } = require("./config/env");
 const { apiRouter } = require("./routes");
 
 const app = express();
 
+/* ---------------- CORS ---------------- */
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://vehicle-telemetry-round2.vercel.app",
+    ],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
+
+/* ------------- Middleware ------------ */
+
 app.use(express.json());
+
+/* ------------- Health Check ---------- */
 
 app.get("/health", (_req, res) => {
   res.status(200).json({
@@ -14,7 +32,11 @@ app.get("/health", (_req, res) => {
   });
 });
 
+/* ------------- API Routes ------------ */
+
 app.use(env.API_PREFIX, apiRouter);
+
+/* ------------- 404 Handler ----------- */
 
 app.use((req, res) => {
   res.status(404).json({
@@ -22,9 +44,12 @@ app.use((req, res) => {
   });
 });
 
+/* ----------- Error Handler ----------- */
+
 app.use((error, _req, res, _next) => {
   const statusCode = error.statusCode || 500;
-  const message = statusCode >= 500 ? "Internal server error" : error.message;
+  const message =
+    statusCode >= 500 ? "Internal server error" : error.message;
 
   if (statusCode >= 500) {
     console.error("[error]", error);
