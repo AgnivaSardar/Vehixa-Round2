@@ -1,344 +1,350 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Round2 Live Control Simulator</title>
-    <style>
-      :root {
-        font-family: Inter, Arial, sans-serif;
-      }
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Round2 Live Control Simulator</title>
 
-      body {
-        margin: 0;
-        background: #0f172a;
-        color: #e2e8f0;
-      }
+<style>
+:root{font-family:Inter,Arial,sans-serif}
 
-      .container {
-        max-width: 920px;
-        margin: 24px auto;
-        padding: 24px;
-      }
+body{
+margin:0;
+background:#0f172a;
+color:#e2e8f0
+}
 
-      h1 {
-        margin: 0 0 6px;
-        font-size: 24px;
-      }
+.container{
+max-width:920px;
+margin:24px auto;
+padding:24px
+}
 
-      .sub {
-        color: #94a3b8;
-        margin-bottom: 18px;
-      }
+h1{
+margin:0 0 6px;
+font-size:24px
+}
 
-      .card {
-        background: #111827;
-        border: 1px solid #334155;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 14px;
-      }
+.sub{
+color:#94a3b8;
+margin-bottom:18px
+}
 
-      .row {
-        display: grid;
-        grid-template-columns: 170px 1fr 120px;
-        gap: 12px;
-        align-items: center;
-        margin-bottom: 10px;
-      }
+.card{
+background:#111827;
+border:1px solid #334155;
+border-radius:12px;
+padding:16px;
+margin-bottom:14px
+}
 
-      .controls {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
+.row{
+display:grid;
+grid-template-columns:170px 1fr 120px;
+gap:12px;
+align-items:center;
+margin-bottom:10px
+}
 
-      input[type="text"],
-      input[type="number"] {
-        width: 100%;
-        box-sizing: border-box;
-        background: #1f2937;
-        color: #e2e8f0;
-        border: 1px solid #475569;
-        border-radius: 8px;
-        padding: 8px 10px;
-      }
+.controls{
+display:flex;
+gap:10px;
+flex-wrap:wrap
+}
 
-      input[type="range"] {
-        width: 100%;
-      }
+input[type=text],input[type=number]{
+width:100%;
+box-sizing:border-box;
+background:#1f2937;
+color:#e2e8f0;
+border:1px solid #475569;
+border-radius:8px;
+padding:8px 10px
+}
 
-      button {
-        border: 0;
-        border-radius: 8px;
-        padding: 10px 14px;
-        color: #fff;
-        cursor: pointer;
-      }
+input[type=range]{width:100%}
 
-      button#startBtn {
-        background: #16a34a;
-      }
+button{
+border:0;
+border-radius:8px;
+padding:10px 14px;
+color:#fff;
+cursor:pointer
+}
 
-      button#stopBtn {
-        background: #dc2626;
-      }
+#startBtn{background:#16a34a}
+#stopBtn{background:#dc2626}
 
-      .status {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px 20px;
-        font-size: 14px;
-      }
+.status{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:8px 20px;
+font-size:14px
+}
 
-      .status span {
-        color: #94a3b8;
-      }
+.status span{color:#94a3b8}
 
-      #error {
-        color: #fca5a5;
-        min-height: 20px;
-      }
+#error{
+color:#fca5a5;
+min-height:20px
+}
 
-      @media (max-width: 760px) {
-        .row {
-          grid-template-columns: 1fr;
-        }
+@media(max-width:760px){
+.row{grid-template-columns:1fr}
+.status{grid-template-columns:1fr}
+}
+</style>
+</head>
 
-        .status {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main class="container">
-      <h1>🎛️ Round2 Live Control Simulator</h1>
-      <div class="sub">Set telemetry metrics in real time. Data is sent every random 10-15 seconds only when active.</div>
+<body>
 
-      <section class="card">
-        <div class="row">
-          <label for="vehicleId">Vehicle ID</label>
-          <input id="vehicleId" type="text" />
-          <div></div>
-        </div>
-        <div class="row">
-          <label for="minInterval">Min Interval (s)</label>
-          <input id="minInterval" type="number" min="1" value="10" />
-          <div></div>
-        </div>
-        <div class="row">
-          <label for="maxInterval">Max Interval (s)</label>
-          <input id="maxInterval" type="number" min="1" value="15" />
-          <div></div>
-        </div>
-        <div class="controls">
-          <button id="startBtn" type="button">Start</button>
-          <button id="stopBtn" type="button">Stop</button>
-        </div>
-      </section>
+<main class="container">
 
-      <section class="card" id="metricsCard"></section>
+<h1>🎛️ Round2 Live Control Simulator</h1>
+<div class="sub">
+Set telemetry metrics in real time. Data is sent every random 10-15 seconds only when active.
+</div>
 
-      <section class="card">
-        <div class="status">
-          <div><span>Status:</span> <strong id="statusText">INACTIVE</strong></div>
-          <div><span>Sent Count:</span> <strong id="sentCount">0</strong></div>
-          <div><span>Next Send In:</span> <strong id="nextSend">-</strong></div>
-          <div><span>Last Sent At:</span> <strong id="lastSent">-</strong></div>
-          <div style="grid-column: 1 / -1"><span>Last Result:</span> <strong id="lastResult">-</strong></div>
-        </div>
-      </section>
+<section class="card">
 
-      <div id="error"></div>
-    </main>
+<div class="row">
+<label>Vehicle ID</label>
+<input id="vehicleId" type="text">
+<div></div>
+</div>
 
-    <script>
-      const metricDefinitions = [
-        { key: "engine_rpm", label: "Engine RPM", min: 500, max: 6000, step: 10 },
-        { key: "lub_oil_pressure", label: "Lube Oil Pressure", min: 0, max: 10, step: 0.1 },
-        { key: "fuel_pressure", label: "Fuel Pressure", min: 0, max: 40, step: 0.1 },
-        { key: "coolant_pressure", label: "Coolant Pressure", min: 0, max: 10, step: 0.1 },
-        { key: "lub_oil_temp", label: "Lube Oil Temp", min: 40, max: 150, step: 0.1 },
-        { key: "coolant_temp", label: "Coolant Temp", min: 40, max: 130, step: 0.1 },
-      ];
+<div class="row">
+<label>Min Interval (s)</label>
+<input id="minInterval" type="number" min="1" value="10">
+<div></div>
+</div>
 
-      const elements = {
-        vehicleId: document.getElementById("vehicleId"),
-        minInterval: document.getElementById("minInterval"),
-        maxInterval: document.getElementById("maxInterval"),
-        startBtn: document.getElementById("startBtn"),
-        stopBtn: document.getElementById("stopBtn"),
-        metricsCard: document.getElementById("metricsCard"),
-        statusText: document.getElementById("statusText"),
-        sentCount: document.getElementById("sentCount"),
-        nextSend: document.getElementById("nextSend"),
-        lastSent: document.getElementById("lastSent"),
-        lastResult: document.getElementById("lastResult"),
-        error: document.getElementById("error"),
-      };
+<div class="row">
+<label>Max Interval (s)</label>
+<input id="maxInterval" type="number" min="1" value="15">
+<div></div>
+</div>
 
-      const metricInputs = {};
-      let saveDebounce = null;
+<div class="controls">
+<button id="startBtn">Start</button>
+<button id="stopBtn">Stop</button>
+</div>
 
-      const apiRequest = async (url, options = {}) => {
-        const response = await fetch(url, options);
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(text || `Request failed (${response.status})`);
-        }
-        return response.json();
-      };
+</section>
 
-      const renderMetrics = () => {
-        elements.metricsCard.innerHTML = "";
+<section class="card" id="metricsCard"></section>
 
-        metricDefinitions.forEach((metric) => {
-          const row = document.createElement("div");
-          row.className = "row";
-          row.innerHTML = `
-            <label for="${metric.key}_range">${metric.label}</label>
-            <input id="${metric.key}_range" type="range" min="${metric.min}" max="${metric.max}" step="${metric.step}" />
-            <input id="${metric.key}_number" type="number" min="${metric.min}" max="${metric.max}" step="${metric.step}" />
-          `;
+<section class="card">
 
-          elements.metricsCard.appendChild(row);
+<div class="status">
+<div><span>Status:</span> <strong id="statusText">INACTIVE</strong></div>
+<div><span>Sent Count:</span> <strong id="sentCount">0</strong></div>
+<div><span>Next Send In:</span> <strong id="nextSend">-</strong></div>
+<div><span>Last Sent:</span> <strong id="lastSent">-</strong></div>
+<div style="grid-column:1/-1"><span>Last Result:</span> <strong id="lastResult">-</strong></div>
+</div>
 
-          const range = row.querySelector(`#${metric.key}_range`);
-          const number = row.querySelector(`#${metric.key}_number`);
+</section>
 
-          metricInputs[metric.key] = { range, number };
+<div id="error"></div>
 
-          range.addEventListener("input", () => {
-            number.value = range.value;
-            schedulePatch();
-          });
+</main>
 
-          number.addEventListener("input", () => {
-            range.value = number.value;
-            schedulePatch();
-          });
-        });
-      };
+<script>
 
-      const collectMetrics = () => {
-        const metrics = {};
+const metricDefinitions=[
 
-        metricDefinitions.forEach((metric) => {
-          metrics[metric.key] = Number(metricInputs[metric.key].number.value);
-        });
+{key:"engine_rpm",label:"Engine RPM",min:500,max:6000,step:10},
 
-        return metrics;
-      };
+{key:"lub_oil_pressure",label:"Lube Oil Pressure",min:0,max:10,step:0.1},
+{key:"fuel_pressure",label:"Fuel Pressure",min:0,max:40,step:0.1},
+{key:"coolant_pressure",label:"Coolant Pressure",min:0,max:10,step:0.1},
 
-      const renderStatus = (state) => {
-        elements.statusText.textContent = state.isActive ? "ACTIVE" : "INACTIVE";
-        elements.sentCount.textContent = String(state.sentCount);
-        elements.nextSend.textContent = state.secondsUntilNextSend === null ? "-" : `${state.secondsUntilNextSend}s`;
-        elements.lastSent.textContent = state.lastSentAt ? new Date(state.lastSentAt).toLocaleString() : "-";
+{key:"lub_oil_temp",label:"Lube Oil Temp",min:40,max:150,step:0.1},
+{key:"coolant_temp",label:"Coolant Temp",min:40,max:130,step:0.1},
+{key:"engine_temp",label:"Engine Temp",min:40,max:140,step:0.1},
 
-        if (state.lastResult) {
-          elements.lastResult.textContent = `${state.lastResult.ok ? "✅" : "❌"} ${state.lastResult.message}`;
-        } else {
-          elements.lastResult.textContent = "-";
-        }
-      };
+{key:"battery_voltage",label:"Battery Voltage",min:10,max:16,step:0.1},
 
-      const applyStateToForm = (state) => {
-        elements.vehicleId.value = state.vehicleId;
-        elements.minInterval.value = state.minIntervalSeconds;
-        elements.maxInterval.value = state.maxIntervalSeconds;
+{key:"mileage",label:"Mileage",min:0,max:500000,step:10},
 
-        metricDefinitions.forEach((metric) => {
-          const value = state.metrics[metric.key];
-          metricInputs[metric.key].range.value = value;
-          metricInputs[metric.key].number.value = value;
-        });
+{key:"vibration_level",label:"Vibration Level",min:0,max:10,step:0.1},
 
-        renderStatus(state);
-      };
+{key:"fuel_efficiency",label:"Fuel Efficiency",min:0,max:40,step:0.1},
 
-      const patchState = async () => {
-        const payload = {
-          vehicleId: elements.vehicleId.value,
-          minIntervalSeconds: Number(elements.minInterval.value),
-          maxIntervalSeconds: Number(elements.maxInterval.value),
-          metrics: collectMetrics(),
-        };
+{key:"coolant_level",label:"Coolant Level",min:0,max:100,step:1},
 
-        const state = await apiRequest("/api/state", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+{key:"ambient_temperature",label:"Ambient Temp",min:-10,max:60,step:0.1},
 
-        renderStatus(state);
-      };
+{key:"error_codes_count",label:"Error Codes",min:0,max:10,step:1}
 
-      const schedulePatch = () => {
-        clearTimeout(saveDebounce);
-        saveDebounce = setTimeout(async () => {
-          try {
-            elements.error.textContent = "";
-            await patchState();
-          } catch (error) {
-            elements.error.textContent = error.message;
-          }
-        }, 120);
-      };
+]
 
-      const setupListeners = () => {
-        elements.vehicleId.addEventListener("input", schedulePatch);
-        elements.minInterval.addEventListener("input", schedulePatch);
-        elements.maxInterval.addEventListener("input", schedulePatch);
+const elements={
+vehicleId:document.getElementById("vehicleId"),
+minInterval:document.getElementById("minInterval"),
+maxInterval:document.getElementById("maxInterval"),
+startBtn:document.getElementById("startBtn"),
+stopBtn:document.getElementById("stopBtn"),
+metricsCard:document.getElementById("metricsCard"),
+statusText:document.getElementById("statusText"),
+sentCount:document.getElementById("sentCount"),
+nextSend:document.getElementById("nextSend"),
+lastSent:document.getElementById("lastSent"),
+lastResult:document.getElementById("lastResult"),
+error:document.getElementById("error")
+}
 
-        elements.startBtn.addEventListener("click", async () => {
-          try {
-            elements.error.textContent = "";
-            await patchState();
-            const state = await apiRequest("/api/start", { method: "POST" });
-            renderStatus(state);
-          } catch (error) {
-            elements.error.textContent = error.message;
-          }
-        });
+const metricInputs={}
+let saveDebounce=null
 
-        elements.stopBtn.addEventListener("click", async () => {
-          try {
-            elements.error.textContent = "";
-            const state = await apiRequest("/api/stop", { method: "POST" });
-            renderStatus(state);
-          } catch (error) {
-            elements.error.textContent = error.message;
-          }
-        });
-      };
+const apiRequest=async(url,options={})=>{
+const response=await fetch(url,options)
 
-      const pollStatus = () => {
-        setInterval(async () => {
-          try {
-            const state = await apiRequest("/api/state");
-            renderStatus(state);
-          } catch {
-            // ignore transient poll errors
-          }
-        }, 1000);
-      };
+if(!response.ok){
+const text=await response.text()
+throw new Error(text||`Request failed (${response.status})`)
+}
 
-      const bootstrap = async () => {
-        renderMetrics();
-        setupListeners();
+return response.json()
+}
 
-        try {
-          const state = await apiRequest("/api/state");
-          applyStateToForm(state);
-          pollStatus();
-        } catch (error) {
-          elements.error.textContent = error.message;
-        }
-      };
+const renderMetrics=()=>{
 
-      bootstrap();
-    </script>
-  </body>
+elements.metricsCard.innerHTML=""
+
+metricDefinitions.forEach(metric=>{
+
+const row=document.createElement("div")
+row.className="row"
+
+row.innerHTML=`
+<label>${metric.label}</label>
+<input id="${metric.key}_range" type="range" min="${metric.min}" max="${metric.max}" step="${metric.step}">
+<input id="${metric.key}_number" type="number" min="${metric.min}" max="${metric.max}" step="${metric.step}">
+`
+
+elements.metricsCard.appendChild(row)
+
+const range=row.querySelector(`#${metric.key}_range`)
+const number=row.querySelector(`#${metric.key}_number`)
+
+metricInputs[metric.key]={range,number}
+
+range.addEventListener("input",()=>{
+number.value=range.value
+schedulePatch()
+})
+
+number.addEventListener("input",()=>{
+range.value=number.value
+schedulePatch()
+})
+
+})
+
+}
+
+const collectMetrics=()=>{
+
+const metrics={}
+
+metricDefinitions.forEach(metric=>{
+metrics[metric.key]=Number(metricInputs[metric.key].number.value)
+})
+
+return metrics
+}
+
+const renderStatus=(state)=>{
+
+elements.statusText.textContent=state.isActive?"ACTIVE":"INACTIVE"
+elements.sentCount.textContent=state.sentCount
+
+elements.nextSend.textContent=
+state.secondsUntilNextSend===null?"-":`${state.secondsUntilNextSend}s`
+
+elements.lastSent.textContent=
+state.lastSentAt?new Date(state.lastSentAt).toLocaleString():"-"
+
+elements.lastResult.textContent=
+state.lastResult
+?`${state.lastResult.ok?"✅":"❌"} ${state.lastResult.message}`
+:"-"
+
+}
+
+const patchState=async()=>{
+
+const payload={
+vehicleId:elements.vehicleId.value,
+minIntervalSeconds:Number(elements.minInterval.value),
+maxIntervalSeconds:Number(elements.maxInterval.value),
+metrics:collectMetrics()
+}
+
+const state=await apiRequest("/api/state",{
+method:"PATCH",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(payload)
+})
+
+renderStatus(state)
+
+}
+
+const schedulePatch=()=>{
+clearTimeout(saveDebounce)
+
+saveDebounce=setTimeout(async()=>{
+try{
+elements.error.textContent=""
+await patchState()
+}catch(error){
+elements.error.textContent=error.message
+}
+},120)
+}
+
+const bootstrap=async()=>{
+
+renderMetrics()
+
+elements.startBtn.onclick=async()=>{
+await patchState()
+const state=await apiRequest("/api/start",{method:"POST"})
+renderStatus(state)
+}
+
+elements.stopBtn.onclick=async()=>{
+const state=await apiRequest("/api/stop",{method:"POST"})
+renderStatus(state)
+}
+
+const state=await apiRequest("/api/state")
+elements.vehicleId.value=state.vehicleId
+elements.minInterval.value=state.minIntervalSeconds
+elements.maxInterval.value=state.maxIntervalSeconds
+
+metricDefinitions.forEach(metric=>{
+metricInputs[metric.key].range.value=state.metrics[metric.key]
+metricInputs[metric.key].number.value=state.metrics[metric.key]
+})
+
+renderStatus(state)
+
+setInterval(async()=>{
+try{
+const s=await apiRequest("/api/state")
+renderStatus(s)
+}catch{}
+},1000)
+
+}
+
+bootstrap()
+
+</script>
+
+</body>
 </html>

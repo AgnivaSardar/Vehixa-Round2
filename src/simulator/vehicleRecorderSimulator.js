@@ -4,15 +4,39 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const randomInRange = (min, max) => min + Math.random() * (max - min);
 
-const makeVehicleReading = () => ({
-  engine_rpm: Number(randomInRange(850, 2300).toFixed(2)),
-  lub_oil_pressure: Number(randomInRange(1.4, 4.8).toFixed(2)),
-  fuel_pressure: Number(randomInRange(9.5, 24.5).toFixed(2)),
-  coolant_pressure: Number(randomInRange(0.8, 5.2).toFixed(2)),
-  lub_oil_temp: Number(randomInRange(70, 118).toFixed(2)),
-  coolant_temp: Number(randomInRange(75, 108).toFixed(2)),
-  recordedAt: new Date().toISOString(),
-});
+const makeVehicleReading = () => {
+  const engineRpm = Number(randomInRange(850, 2300).toFixed(2));
+
+  return {
+    engine_rpm: engineRpm,
+    rpm: engineRpm,
+
+    lub_oil_pressure: Number(randomInRange(1.4, 4.8).toFixed(2)),
+    oil_pressure: Number(randomInRange(1.4, 4.8).toFixed(2)),
+
+    fuel_pressure: Number(randomInRange(9.5, 24.5).toFixed(2)),
+    coolant_pressure: Number(randomInRange(0.8, 5.2).toFixed(2)),
+
+    lub_oil_temp: Number(randomInRange(70, 118).toFixed(2)),
+    coolant_temp: Number(randomInRange(75, 108).toFixed(2)),
+    engine_temp: Number(randomInRange(75, 115).toFixed(2)),
+
+    battery_voltage: Number(randomInRange(11.8, 14.2).toFixed(2)),
+
+    mileage: Number(randomInRange(10000, 200000).toFixed(2)),
+    vibration_level: Number(randomInRange(0.1, 2.5).toFixed(2)),
+
+    fuel_efficiency: Number(randomInRange(8, 20).toFixed(2)),
+
+    error_codes_count: Math.floor(randomInRange(0, 3)),
+
+    coolant_level: Number(randomInRange(50, 100).toFixed(2)),
+
+    ambient_temperature: Number(randomInRange(25, 40).toFixed(2)),
+
+    recordedAt: new Date().toISOString(),
+  };
+};
 
 const postTelemetry = async (targetUrl, payload) => {
   const response = await fetch(targetUrl, {
@@ -55,17 +79,32 @@ const displayProgressBar = (percent) => {
 
 const runContinuousSimulator = async () => {
   const targetUrl =
-    process.env.SIMULATOR_TARGET_URL || `http://localhost:${env.PORT}${env.API_PREFIX}/telemetry`;
-  const vehicleId = process.env.SIMULATOR_VEHICLE_ID || "vehicle-real-time-001";
-  const minIntervalSeconds = toPositiveNumber(process.env.SIMULATOR_MIN_INTERVAL_SECONDS, 20);
-  const maxIntervalSeconds = toPositiveNumber(process.env.SIMULATOR_MAX_INTERVAL_SECONDS, 30);
+    process.env.SIMULATOR_TARGET_URL ||
+    `http://localhost:${env.PORT}${env.API_PREFIX}/telemetry`;
+
+  const vehicleId =
+    process.env.SIMULATOR_VEHICLE_ID || "vehicle-real-time-001";
+
+  const minIntervalSeconds = toPositiveNumber(
+    process.env.SIMULATOR_MIN_INTERVAL_SECONDS,
+    20
+  );
+
+  const maxIntervalSeconds = toPositiveNumber(
+    process.env.SIMULATOR_MAX_INTERVAL_SECONDS,
+    30
+  );
 
   console.log("\n╔════════════════════════════════════════════════════════════╗");
   console.log("║      🚗 ROUND2 REAL-TIME VEHICLE SIMULATOR                 ║");
   console.log("╚════════════════════════════════════════════════════════════╝");
+
   console.log(`\n📡 Target URL: ${targetUrl}`);
   console.log(`🚙 Vehicle ID: ${vehicleId}`);
-  console.log(`⏱️  Send Interval: ${minIntervalSeconds}-${maxIntervalSeconds}s (randomized)`);
+  console.log(
+    `⏱️  Send Interval: ${minIntervalSeconds}-${maxIntervalSeconds}s`
+  );
+
   console.log(`\n⏳ Simulator running... Press Ctrl+C to stop.\n`);
 
   let readingIndex = 0;
@@ -80,23 +119,34 @@ const runContinuousSimulator = async () => {
   process.on("SIGTERM", stopHandler);
 
   while (!shouldStop) {
-    const sendIntervalSeconds = getRandomIntervalSeconds(minIntervalSeconds, maxIntervalSeconds);
+    const sendIntervalSeconds = getRandomIntervalSeconds(
+      minIntervalSeconds,
+      maxIntervalSeconds
+    );
+
     const sendIntervalMs = sendIntervalSeconds * 1000;
     const startTime = Date.now();
+
     readingIndex += 1;
 
     const reading = makeVehicleReading();
+
     const payload = {
       vehicleId,
       source: "REAL_TIME_STREAM",
       ...reading,
+      rawPayload: reading,
     };
 
     try {
       await postTelemetry(targetUrl, payload);
 
       console.log(
-        `[${toDateString(new Date())}] ✅ Reading #${readingIndex} sent | RPM: ${reading.engine_rpm} | Oil: ${reading.lub_oil_pressure} bar | Coolant: ${reading.coolant_temp}°C`
+        `[${toDateString(new Date())}] ✅ Reading #${readingIndex} sent | RPM: ${
+          reading.engine_rpm
+        } | Temp: ${reading.coolant_temp}°C | FuelEff: ${
+          reading.fuel_efficiency
+        }`
       );
     } catch (error) {
       console.log(
@@ -111,13 +161,24 @@ const runContinuousSimulator = async () => {
       const updateInterval = 500;
       const progressSteps = Math.ceil(remaining / updateInterval);
 
-      for (let step = 0; step < progressSteps && !shouldStop; step += 1) {
-        const progressMs = Math.min(updateInterval, remaining - step * updateInterval);
-        const percentComplete = ((sendIntervalMs - remaining + step * updateInterval) / sendIntervalMs) * 100;
+      for (let step = 0; step < progressSteps && !shouldStop; step++) {
+        const progressMs = Math.min(
+          updateInterval,
+          remaining - step * updateInterval
+        );
+
+        const percentComplete =
+          ((sendIntervalMs - remaining + step * updateInterval) /
+            sendIntervalMs) *
+          100;
+
         const bar = displayProgressBar(Math.min(100, percentComplete));
 
         process.stdout.write(
-          `\r⏳ Next reading in ${((remaining - step * updateInterval) / 1000).toFixed(1)}s ${bar}`
+          `\r⏳ Next reading in ${(
+            (remaining - step * updateInterval) /
+            1000
+          ).toFixed(1)}s ${bar}`
         );
 
         await sleep(progressMs);

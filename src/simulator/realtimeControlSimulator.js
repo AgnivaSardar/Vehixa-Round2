@@ -14,44 +14,81 @@ const toPositiveInteger = (value, fallbackValue) => {
 
 const clampNumber = (value, fallbackValue, min, max, decimals = 2) => {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallbackValue;
-  }
+  if (!Number.isFinite(parsed)) return fallbackValue;
 
   const clamped = Math.min(max, Math.max(min, parsed));
   return Number(clamped.toFixed(decimals));
 };
 
 const METRIC_RULES = {
-  engine_rpm: { min: 500, max: 6000, decimals: 2 },
-  lub_oil_pressure: { min: 0, max: 10, decimals: 2 },
-  fuel_pressure: { min: 0, max: 40, decimals: 2 },
-  coolant_pressure: { min: 0, max: 10, decimals: 2 },
-  lub_oil_temp: { min: 40, max: 150, decimals: 2 },
-  coolant_temp: { min: 40, max: 130, decimals: 2 },
+  engine_rpm: { min: 500, max: 6000 },
+  lub_oil_pressure: { min: 0, max: 10 },
+  fuel_pressure: { min: 0, max: 40 },
+  coolant_pressure: { min: 0, max: 10 },
+
+  lub_oil_temp: { min: 40, max: 150 },
+  coolant_temp: { min: 40, max: 130 },
+  engine_temp: { min: 40, max: 140 },
+
+  battery_voltage: { min: 10, max: 16 },
+  oil_pressure: { min: 0, max: 10 },
+
+  mileage: { min: 0, max: 500000 },
+  vibration_level: { min: 0, max: 10 },
+
+  fuel_efficiency: { min: 0, max: 40 },
+  coolant_level: { min: 0, max: 100 },
+  ambient_temperature: { min: -10, max: 60 },
+
+  error_codes_count: { min: 0, max: 10 },
 };
 
 const defaultTargetUrl =
-  process.env.SIMULATOR_TARGET_URL || `http://localhost:${env.PORT}${env.API_PREFIX}/telemetry`;
+  process.env.SIMULATOR_TARGET_URL ||
+  `http://localhost:${env.PORT}${env.API_PREFIX}/telemetry`;
 
 const state = {
   targetUrl: defaultTargetUrl,
-  vehicleId: process.env.SIMULATOR_CONTROL_VEHICLE_ID || "vehicle-live-control-002",
+  vehicleId:
+    process.env.SIMULATOR_CONTROL_VEHICLE_ID || "vehicle-live-control-002",
+
   source: "REAL_TIME_CONTROL",
+
   minIntervalSeconds: 10,
   maxIntervalSeconds: 15,
+
   isActive: false,
   sentCount: 0,
+
   lastSentAt: null,
   lastResult: null,
   nextSendAt: null,
+
   metrics: {
     engine_rpm: 1200,
+    rpm: 1200,
+
     lub_oil_pressure: 2.8,
+    oil_pressure: 2.8,
+
     fuel_pressure: 15.2,
     coolant_pressure: 1.4,
-    lub_oil_temp: 84.0,
-    coolant_temp: 90.0,
+
+    lub_oil_temp: 84,
+    coolant_temp: 90,
+    engine_temp: 92,
+
+    battery_voltage: 13.2,
+
+    mileage: 45000,
+    vibration_level: 0.5,
+
+    fuel_efficiency: 15,
+
+    coolant_level: 75,
+    ambient_temperature: 30,
+
+    error_codes_count: 0,
   },
 };
 
@@ -60,20 +97,20 @@ let loopPromise = null;
 const getRandomIntervalSeconds = () => {
   const min = Math.min(state.minIntervalSeconds, state.maxIntervalSeconds);
   const max = Math.max(state.minIntervalSeconds, state.maxIntervalSeconds);
+
   return min + Math.floor(Math.random() * (max - min + 1));
 };
 
 const waitWithStopCheck = async (durationMs) => {
-  let remainingMs = durationMs;
+  let remaining = durationMs;
 
-  while (remainingMs > 0) {
-    if (!state.isActive) {
-      return false;
-    }
+  while (remaining > 0) {
+    if (!state.isActive) return false;
 
-    const stepMs = Math.min(250, remainingMs);
-    await sleep(stepMs);
-    remainingMs -= stepMs;
+    const step = Math.min(250, remaining);
+    await sleep(step);
+
+    remaining -= step;
   }
 
   return state.isActive;
@@ -83,8 +120,11 @@ const postTelemetry = async () => {
   const payload = {
     vehicleId: state.vehicleId,
     source: state.source,
+
     ...state.metrics,
+
     recordedAt: new Date().toISOString(),
+    rawPayload: state.metrics,
   };
 
   const response = await fetch(state.targetUrl, {
@@ -104,24 +144,24 @@ const postTelemetry = async () => {
 };
 
 const runLoop = async () => {
-  if (loopPromise) {
-    return loopPromise;
-  }
+  if (loopPromise) return loopPromise;
 
   loopPromise = (async () => {
     while (state.isActive) {
       const intervalSeconds = getRandomIntervalSeconds();
+
       state.nextSendAt = Date.now() + intervalSeconds * 1000;
 
       const shouldContinue = await waitWithStopCheck(intervalSeconds * 1000);
-      if (!shouldContinue) {
-        break;
-      }
+
+      if (!shouldContinue) break;
 
       try {
         await postTelemetry();
+
         state.sentCount += 1;
         state.lastSentAt = new Date().toISOString();
+
         state.lastResult = {
           ok: true,
           message: "Telemetry sent",
@@ -151,7 +191,9 @@ const runLoop = async () => {
 
 const serializeState = () => {
   const secondsUntilNextSend =
-    state.nextSendAt === null ? null : Math.max(0, Math.ceil((state.nextSendAt - Date.now()) / 1000));
+    state.nextSendAt === null
+      ? null
+      : Math.max(0, Math.ceil((state.nextSendAt - Date.now()) / 1000));
 
   return {
     ...state,
@@ -160,9 +202,7 @@ const serializeState = () => {
 };
 
 const applyMetricsPatch = (inputMetrics) => {
-  if (!inputMetrics || typeof inputMetrics !== "object") {
-    return;
-  }
+  if (!inputMetrics || typeof inputMetrics !== "object") return;
 
   for (const [metricName, rules] of Object.entries(METRIC_RULES)) {
     if (inputMetrics[metricName] !== undefined) {
@@ -170,28 +210,34 @@ const applyMetricsPatch = (inputMetrics) => {
         inputMetrics[metricName],
         state.metrics[metricName],
         rules.min,
-        rules.max,
-        rules.decimals
+        rules.max
       );
     }
   }
+
+  state.metrics.rpm = state.metrics.engine_rpm;
+  state.metrics.oil_pressure = state.metrics.lub_oil_pressure;
 };
 
 const applyControlPatch = (payload) => {
-  if (!payload || typeof payload !== "object") {
-    return;
-  }
+  if (!payload || typeof payload !== "object") return;
 
-  if (typeof payload.vehicleId === "string" && payload.vehicleId.trim().length > 0) {
+  if (typeof payload.vehicleId === "string" && payload.vehicleId.trim()) {
     state.vehicleId = payload.vehicleId.trim();
   }
 
   if (payload.minIntervalSeconds !== undefined) {
-    state.minIntervalSeconds = toPositiveInteger(payload.minIntervalSeconds, state.minIntervalSeconds);
+    state.minIntervalSeconds = toPositiveInteger(
+      payload.minIntervalSeconds,
+      state.minIntervalSeconds
+    );
   }
 
   if (payload.maxIntervalSeconds !== undefined) {
-    state.maxIntervalSeconds = toPositiveInteger(payload.maxIntervalSeconds, state.maxIntervalSeconds);
+    state.maxIntervalSeconds = toPositiveInteger(
+      payload.maxIntervalSeconds,
+      state.maxIntervalSeconds
+    );
   }
 
   applyMetricsPatch(payload.metrics);
@@ -213,12 +259,14 @@ app.patch("/api/state", (req, res) => {
 app.post("/api/start", (_, res) => {
   if (!state.isActive) {
     state.isActive = true;
+
     runLoop().catch((error) => {
       state.lastResult = {
         ok: false,
         message: error.message,
         at: new Date().toISOString(),
       };
+
       state.isActive = false;
       state.nextSendAt = null;
       loopPromise = null;
@@ -231,14 +279,20 @@ app.post("/api/start", (_, res) => {
 app.post("/api/stop", (_, res) => {
   state.isActive = false;
   state.nextSendAt = null;
+
   res.json(serializeState());
 });
 
-const controlPort = toPositiveInteger(process.env.SIMULATOR_CONTROL_PORT, 5055);
+const controlPort = toPositiveInteger(
+  process.env.SIMULATOR_CONTROL_PORT,
+  5055
+);
+
 const server = app.listen(controlPort, () => {
   console.log("\n╔════════════════════════════════════════════════════════════╗");
   console.log("║    🎛️  ROUND2 REAL-TIME CONTROL SIMULATOR (LIVE)          ║");
   console.log("╚════════════════════════════════════════════════════════════╝");
+
   console.log(`\nOpen control panel: http://localhost:${controlPort}`);
   console.log(`Target ingest endpoint: ${state.targetUrl}`);
   console.log("Streaming interval: random 10-15 seconds when active");
@@ -249,9 +303,7 @@ const shutdown = () => {
   state.isActive = false;
   state.nextSendAt = null;
 
-  server.close(() => {
-    process.exit(0);
-  });
+  server.close(() => process.exit(0));
 };
 
 process.on("SIGINT", shutdown);
