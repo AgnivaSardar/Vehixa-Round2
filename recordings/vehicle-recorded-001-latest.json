@@ -1,0 +1,74 @@
+[
+  {
+    "engine_rpm": 2146.54,
+    "lub_oil_pressure": 4.32,
+    "fuel_pressure": 17.21,
+    "coolant_pressure": 3.38,
+    "lub_oil_temp": 110.42,
+    "coolant_temp": 99.26,
+    "recordedAt": "2026-03-06T09:18:19.959Z"
+  },
+  {
+    "engine_rpm": 1634.07,
+    "lub_oil_pressure": 3.02,
+    "fuel_pressure": 10.95,
+    "coolant_pressure": 1.98,
+    "lub_oil_temp": 110.5,
+    "coolant_temp": 86.81,
+    "recordedAt": "2026-03-06T09:18:20.472Z"
+  },
+  {
+    "engine_rpm": 1759.14,
+    "lub_oil_pressure": 4.34,
+    "fuel_pressure": 16.51,
+    "coolant_pressure": 3.1,
+    "lub_oil_temp": 73.31,
+    "coolant_temp": 90.99,
+    "recordedAt": "2026-03-06T09:18:20.977Z"
+  },
+  {
+    "engine_rpm": 2186.17,
+    "lub_oil_pressure": 1.47,
+    "fuel_pressure": 23.86,
+    "coolant_pressure": 3.46,
+    "lub_oil_temp": 90.25,
+    "coolant_temp": 79.06,
+    "recordedAt": "2026-03-06T09:18:21.492Z"
+  },
+  {
+    "engine_rpm": 1921.35,
+    "lub_oil_pressure": 2.21,
+    "fuel_pressure": 14.88,
+    "coolant_pressure": 1.5,
+    "lub_oil_temp": 70.91,
+    "coolant_temp": 101.35,
+    "recordedAt": "2026-03-06T09:18:22.006Z"
+  },
+  {
+    "engine_rpm": 1725.98,
+    "lub_oil_pressure": 1.9,
+    "fuel_pressure": 20.73,
+    "coolant_pressure": 1.4,
+    "lub_oil_temp": 95.48,
+    "coolant_temp": 90.38,
+    "recordedAt": "2026-03-06T09:18:22.518Z"
+  },
+  {
+    "engine_rpm": 1834.19,
+    "lub_oil_pressure": 3.84,
+    "fuel_pressure": 24,
+    "coolant_pressure": 1.77,
+    "lub_oil_temp": 75.96,
+    "coolant_temp": 103.23,
+    "recordedAt": "2026-03-06T09:18:23.033Z"
+  },
+  {
+    "engine_rpm": 1674.69,
+    "lub_oil_pressure": 4.17,
+    "fuel_pressure": 13.6,
+    "coolant_pressure": 4.25,
+    "lub_oil_temp": 74.37,
+    "coolant_temp": 102.75,
+    "recordedAt": "2026-03-06T09:18:23.535Z"
+  }
+]
