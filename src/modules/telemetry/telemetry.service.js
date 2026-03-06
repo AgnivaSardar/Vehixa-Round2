@@ -73,7 +73,7 @@ const telemetryService = {
       throw error;
     }
 
-    const telemetry = await prisma.telemetry.create({
+    const telemetry = await prisma.telemtery2.create({
       data: normalized.data,
     });
 
@@ -84,7 +84,7 @@ const telemetryService = {
     const limitInput = Number(options.limit);
     const take = Number.isFinite(limitInput) && limitInput > 0 ? Math.min(limitInput, 500) : 50;
 
-    return prisma.telemetry.findMany({
+    return prisma.telemtery2.findMany({
       where: options.vehicleId ? { vehicleId: options.vehicleId } : undefined,
       orderBy: { receivedAt: "desc" },
       take,
@@ -92,7 +92,7 @@ const telemetryService = {
   },
 
   async latest(vehicleId) {
-    return prisma.telemetry.findFirst({
+    return prisma.telemtery2.findFirst({
       where: vehicleId ? { vehicleId } : undefined,
       orderBy: { receivedAt: "desc" },
     });

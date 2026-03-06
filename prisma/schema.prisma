@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Telemetry {
+model Telemtery2 {
   id                 Int      @id @default(autoincrement())
   vehicleId          String
   source             String?
@@ -33,4 +33,5 @@ model Telemetry {
 
   @@index([vehicleId, recordedAt])
   @@index([receivedAt])
+  @@map("Telemtery2")
 }
