@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Telemetry {
+  id                 Int      @id @default(autoincrement())
+  vehicleId          String
+  source             String?
+  engineRpm          Float?
+  lubOilPressure     Float?
+  fuelPressure       Float?
+  coolantPressure    Float?
+  lubOilTemp         Float?
+  coolantTemp        Float?
+  engineTemp         Float?
+  rpm                Float?
+  batteryVoltage     Float?
+  oilPressure        Float?
+  mileage            Float?
+  vibrationLevel     Float?
+  fuelEfficiency     Float?
+  errorCodesCount    Int?
+  coolantLevel       Float?
+  ambientTemperature Float?
+  recordedAt         DateTime
+  receivedAt         DateTime @default(now())
+  rawPayload         Json
+
+  @@index([vehicleId, recordedAt])
+  @@index([receivedAt])
+}

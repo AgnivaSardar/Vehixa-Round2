@@ -1,0 +1,23 @@
+{
+  "name": "round2-backend",
+  "version": "1.0.0",
+  "description": "Minimal real-time telemetry ingest and display backend for Round 2",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev --name init"
+  },
+  "keywords": [],
+  "author": "Agniva",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "prisma": "^6.19.2"
+  }
+}
