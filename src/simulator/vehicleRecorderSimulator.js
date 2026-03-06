@@ -6,33 +6,35 @@ const randomInRange = (min, max) => min + Math.random() * (max - min);
 
 const makeVehicleReading = () => {
   const engineRpm = Number(randomInRange(850, 2300).toFixed(2));
+  const speed = Number(randomInRange(20, 120).toFixed(2));
 
   return {
-    engine_rpm: engineRpm,
+    engineRpm: engineRpm,
     rpm: engineRpm,
 
-    lub_oil_pressure: Number(randomInRange(1.4, 4.8).toFixed(2)),
-    oil_pressure: Number(randomInRange(1.4, 4.8).toFixed(2)),
+    lubOilPressure: Number(randomInRange(1.4, 4.8).toFixed(2)),
+    oilPressure: Number(randomInRange(1.4, 4.8).toFixed(2)),
 
-    fuel_pressure: Number(randomInRange(9.5, 24.5).toFixed(2)),
-    coolant_pressure: Number(randomInRange(0.8, 5.2).toFixed(2)),
+    fuelPressure: Number(randomInRange(9.5, 24.5).toFixed(2)),
+    coolantPressure: Number(randomInRange(0.8, 5.2).toFixed(2)),
 
-    lub_oil_temp: Number(randomInRange(70, 118).toFixed(2)),
-    coolant_temp: Number(randomInRange(75, 108).toFixed(2)),
-    engine_temp: Number(randomInRange(75, 115).toFixed(2)),
+    lubOilTemp: Number(randomInRange(70, 118).toFixed(2)),
+    coolantTemp: Number(randomInRange(75, 108).toFixed(2)),
+    engineTemp: Number(randomInRange(75, 115).toFixed(2)),
 
-    battery_voltage: Number(randomInRange(11.8, 14.2).toFixed(2)),
+    batteryVoltage: Number(randomInRange(11.8, 14.2).toFixed(2)),
 
+    speed: speed,
     mileage: Number(randomInRange(10000, 200000).toFixed(2)),
-    vibration_level: Number(randomInRange(0.1, 2.5).toFixed(2)),
+    vibrationLevel: Number(randomInRange(0.1, 2.5).toFixed(2)),
 
-    fuel_efficiency: Number(randomInRange(8, 20).toFixed(2)),
+    fuelEfficiency: Number(randomInRange(8, 20).toFixed(2)),
 
-    error_codes_count: Math.floor(randomInRange(0, 3)),
+    errorCodesCount: Math.floor(randomInRange(0, 3)),
 
-    coolant_level: Number(randomInRange(50, 100).toFixed(2)),
+    coolantLevel: Number(randomInRange(50, 100).toFixed(2)),
 
-    ambient_temperature: Number(randomInRange(25, 40).toFixed(2)),
+    ambientTemperature: Number(randomInRange(25, 40).toFixed(2)),
 
     recordedAt: new Date().toISOString(),
   };
@@ -83,7 +85,7 @@ const runContinuousSimulator = async () => {
     `http://localhost:${env.PORT}${env.API_PREFIX}/telemetry`;
 
   const vehicleId =
-    process.env.SIMULATOR_VEHICLE_ID || "vehicle-real-time-001";
+    process.env.SIMULATOR_VEHICLE_ID || "81609e52-0b40-4b54-a891-2b0adb813c7b"; // Honda City
 
   const minIntervalSeconds = toPositiveNumber(
     process.env.SIMULATOR_MIN_INTERVAL_SECONDS,
@@ -133,7 +135,7 @@ const runContinuousSimulator = async () => {
 
     const payload = {
       vehicleId,
-      source: "REAL_TIME_STREAM",
+      source: "SIMULATOR",
       ...reading,
       rawPayload: reading,
     };
@@ -143,9 +145,9 @@ const runContinuousSimulator = async () => {
 
       console.log(
         `[${toDateString(new Date())}] ✅ Reading #${readingIndex} sent | RPM: ${
-          reading.engine_rpm
-        } | Temp: ${reading.coolant_temp}°C | FuelEff: ${
-          reading.fuel_efficiency
+          reading.engineRpm
+        } | Temp: ${reading.coolantTemp}°C | FuelEff: ${
+          reading.fuelEfficiency
         }`
       );
     } catch (error) {

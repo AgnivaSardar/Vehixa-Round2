@@ -11,9 +11,10 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
+      "http://localhost:8080",
       "https://vehicle-telemetry-round2.vercel.app",
     ],
-    methods: ["GET", "POST", "OPTIONS"],
+    methods: ["GET", "POST", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
   })
 );

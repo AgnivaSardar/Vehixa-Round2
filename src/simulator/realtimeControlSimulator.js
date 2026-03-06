@@ -21,26 +21,27 @@ const clampNumber = (value, fallbackValue, min, max, decimals = 2) => {
 };
 
 const METRIC_RULES = {
-  engine_rpm: { min: 500, max: 6000 },
-  lub_oil_pressure: { min: 0, max: 10 },
-  fuel_pressure: { min: 0, max: 40 },
-  coolant_pressure: { min: 0, max: 10 },
+  engineRpm: { min: 500, max: 6000 },
+  lubOilPressure: { min: 0, max: 10 },
+  fuelPressure: { min: 0, max: 40 },
+  coolantPressure: { min: 0, max: 10 },
 
-  lub_oil_temp: { min: 40, max: 150 },
-  coolant_temp: { min: 40, max: 130 },
-  engine_temp: { min: 40, max: 140 },
+  lubOilTemp: { min: 40, max: 150 },
+  coolantTemp: { min: 40, max: 130 },
+  engineTemp: { min: 40, max: 140 },
 
-  battery_voltage: { min: 10, max: 16 },
-  oil_pressure: { min: 0, max: 10 },
+  batteryVoltage: { min: 10, max: 16 },
+  oilPressure: { min: 0, max: 10 },
 
+  speed: { min: 0, max: 200 },
   mileage: { min: 0, max: 500000 },
-  vibration_level: { min: 0, max: 10 },
+  vibrationLevel: { min: 0, max: 10 },
 
-  fuel_efficiency: { min: 0, max: 40 },
-  coolant_level: { min: 0, max: 100 },
-  ambient_temperature: { min: -10, max: 60 },
+  fuelEfficiency: { min: 0, max: 40 },
+  coolantLevel: { min: 0, max: 100 },
+  ambientTemperature: { min: -10, max: 60 },
 
-  error_codes_count: { min: 0, max: 10 },
+  errorCodesCount: { min: 0, max: 10 },
 };
 
 const defaultTargetUrl =
@@ -50,9 +51,9 @@ const defaultTargetUrl =
 const state = {
   targetUrl: defaultTargetUrl,
   vehicleId:
-    process.env.SIMULATOR_CONTROL_VEHICLE_ID || "vehicle-live-control-002",
+    process.env.SIMULATOR_CONTROL_VEHICLE_ID || "b7a09ab1-5c9b-4730-b988-09545e3fb45d", // Tesla Model S
 
-  source: "REAL_TIME_CONTROL",
+  source: "SIMULATOR",
 
   minIntervalSeconds: 10,
   maxIntervalSeconds: 15,
@@ -65,30 +66,31 @@ const state = {
   nextSendAt: null,
 
   metrics: {
-    engine_rpm: 1200,
+    engineRpm: 1200,
     rpm: 1200,
 
-    lub_oil_pressure: 2.8,
-    oil_pressure: 2.8,
+    lubOilPressure: 2.8,
+    oilPressure: 2.8,
 
-    fuel_pressure: 15.2,
-    coolant_pressure: 1.4,
+    fuelPressure: 15.2,
+    coolantPressure: 1.4,
 
-    lub_oil_temp: 84,
-    coolant_temp: 90,
-    engine_temp: 92,
+    lubOilTemp: 84,
+    coolantTemp: 90,
+    engineTemp: 92,
 
-    battery_voltage: 13.2,
+    batteryVoltage: 13.2,
 
+    speed: 60,
     mileage: 45000,
-    vibration_level: 0.5,
+    vibrationLevel: 0.5,
 
-    fuel_efficiency: 15,
+    fuelEfficiency: 15,
 
-    coolant_level: 75,
-    ambient_temperature: 30,
+    coolantLevel: 75,
+    ambientTemperature: 30,
 
-    error_codes_count: 0,
+    errorCodesCount: 0,
   },
 };
 
@@ -169,7 +171,7 @@ const runLoop = async () => {
         };
 
         console.log(
-          `[control-simulator] sent #${state.sentCount} | vehicle=${state.vehicleId} | rpm=${state.metrics.engine_rpm}`
+          `[control-simulator] sent #${state.sentCount} | vehicle=${state.vehicleId} | rpm=${state.metrics.engineRpm}`
         );
       } catch (error) {
         state.lastResult = {
@@ -215,8 +217,8 @@ const applyMetricsPatch = (inputMetrics) => {
     }
   }
 
-  state.metrics.rpm = state.metrics.engine_rpm;
-  state.metrics.oil_pressure = state.metrics.lub_oil_pressure;
+  state.metrics.rpm = state.metrics.engineRpm;
+  state.metrics.oilPressure = state.metrics.lubOilPressure;
 };
 
 const applyControlPatch = (payload) => {
