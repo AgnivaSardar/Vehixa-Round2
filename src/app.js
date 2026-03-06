@@ -14,7 +14,7 @@ app.use(
       "http://localhost:8080",
       "https://vehicle-telemetry-round2.vercel.app",
       "https://round3-alpha.vercel.app",
-      "https://vehicle-telemetry-round3.vercel.app/"
+      "https://vehicle-telemetry-round3.vercel.app",
     ],
     methods: ["GET", "POST", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
