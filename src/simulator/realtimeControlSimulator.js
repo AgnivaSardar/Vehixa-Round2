@@ -43,6 +43,14 @@ const METRIC_RULES = {
   ambientTemperature: { min: -10, max: 60 },
 
   errorCodesCount: { min: 0, max: 10 },
+
+  // EV-specific metrics
+  batteryStateOfCharge: { min: 0, max: 100 },
+  batteryTemp: { min: -20, max: 80 },
+  motorTemp: { min: -20, max: 150 },
+  inverterTemp: { min: -20, max: 120 },
+  throttlePosition: { min: 0, max: 100 },
+  engineLoad: { min: 0, max: 100 },
 };
 
 const defaultTargetUrl =
@@ -92,6 +100,17 @@ const state = {
     ambientTemperature: 30,
 
     errorCodesCount: 0,
+
+    // EV-specific metrics
+    batteryStateOfCharge: 85,
+    batteryTemp: 35,
+    motorTemp: 45,
+    inverterTemp: 40,
+    throttlePosition: 25,
+    engineLoad: 30,
+
+    // Fault codes (array)
+    activeFaultCodes: [],
   },
 };
 
@@ -241,6 +260,13 @@ const applyMetricsPatch = (inputMetrics) => {
         rules.min,
         rules.max
       );
+    }
+  }
+
+  // Handle activeFaultCodes separately (array field)
+  if (inputMetrics.activeFaultCodes !== undefined) {
+    if (Array.isArray(inputMetrics.activeFaultCodes)) {
+      state.metrics.activeFaultCodes = inputMetrics.activeFaultCodes;
     }
   }
 
