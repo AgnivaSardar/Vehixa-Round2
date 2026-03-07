@@ -119,6 +119,85 @@ enum VehicleOperationalStatus {
   DECOMMISSIONED
 }
 
+enum FleetRole {
+  ADMIN
+  MANAGER
+  DRIVER
+}
+
+enum DispatchStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  REJECTED
+}
+
+enum DispatchPriority {
+  STANDARD
+  HIGH
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_SERVICE
+  AWAITING_PARTS
+  READY
+  COMPLETED
+}
+
+enum MaintenanceType {
+  CORRECTIVE
+  PROACTIVE
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ON_TRIP
+  OFF_DUTY
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  TRIP_ISSUE
+  VEHICLE_ISSUE
+  DOCUMENT_HELP
+  EMERGENCY_SOS
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ComplianceType {
+  POLLUTION_CERTIFICATE
+  FITNESS_CERTIFICATE
+  NATIONAL_PERMIT
+  STATE_PERMIT
+  GOODS_PERMIT
+  ROAD_TAX
+}
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
 // Models
 
 model User {
@@ -133,11 +212,23 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  vehicle          Vehicle[]
-  alerts           Alert[]
-  otpVerifications OTPVerification[]
+  // Fleet management fields
+  fleetRole     FleetRole? // ADMIN, MANAGER, DRIVER
+  companyName   String?
+  isApproved    Boolean    @default(false)
+  avatarUrl     String?
+
+  vehicle           Vehicle[]
+  alerts            Alert[]
+  otpVerifications  OTPVerification[]
+  driverProfile     DriverProfile?
+  dispatchesCreated DispatchRequest[] @relation("CreatedBy")
+  assignedDispatches DispatchRequest[] @relation("AssignedDriver")
+  supportTickets    SupportTicket[]
+  auditLogs         AuditLog[]
 
   @@index([email])
+  @@index([fleetRole])
 }
 
 model Vehicle {
@@ -156,14 +247,29 @@ model Vehicle {
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
 
-  user           User               @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  telemetry      Telemetry[]
-  healthRecords  HealthPrediction[]
-  alerts         Alert[]
-  vehicleApiKeys VehicleApiKey[]
-  telemetry2     Telemtery2[]
+  // Fleet management fields
+  engineNumber       String?
+  rcDocumentUrl      String?
+  rcExpiryDate       DateTime?
+  fuelLevel          Int?              @default(0)
+  currentLocation    String?
+  odometer           Float?
+
+  user              User                 @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  telemetry         Telemetry[]
+  healthRecords     HealthPrediction[]
+  alerts            Alert[]
+  vehicleApiKeys    VehicleApiKey[]
+  telemetry2        Telemtery2[]
+  insurancePolicies InsurancePolicy[]
+  maintenanceOrders MaintenanceOrder[]
+  dispatchRequests  DispatchRequest[]
+  driverProfiles    DriverProfile[]      @relation("AssignedVehicle")
+  vehicleComponents VehicleComponent[]
+  complianceRecords ComplianceRecord[]
 
   @@index([userId])
+  @@index([status])
 }
 
 model Telemetry {
@@ -376,4 +482,220 @@ model Telemtery2 {
   @@index([receivedAt])
 
   @@map("Telemtery2")
+}
+
+// ============================================================================
+// FLEET MANAGEMENT MODELS (from TruOps)
+// ============================================================================
+
+model InsurancePolicy {
+  id           String    @id @default(uuid())
+  vehicleId    String
+  provider     String
+  policyNumber String
+  startDate    DateTime?
+  expiryDate   DateTime
+  documentUrl  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([expiryDate])
+}
+
+model DriverProfile {
+  id                  String        @id @default(uuid())
+  userId              String        @unique
+  licenseNumber       String?
+  licenseType         String        @default("HGMV")
+  licenseExpiry       DateTime?
+  safetyScore         Int           @default(100)
+  milesThisMonth      Float         @default(0)
+  totalIncidents      Int           @default(0)
+  onTimeRate          Int           @default(100)
+  yearsExperience     Int           @default(0)
+  status              DriverStatus  @default(AVAILABLE)
+  assignedVehicleId   String?
+  aadharNumber        String?
+  medicalCertExpiry   DateTime?
+  address             String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  user            User      @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  assignedVehicle Vehicle?  @relation("AssignedVehicle", fields: [assignedVehicleId], references: [vehicleId], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([assignedVehicleId])
+}
+
+model DispatchRequest {
+  id            String            @id @default(uuid())
+  ticketNumber  String            @unique
+  origin        String
+  destination   String
+  cargoType     String?
+  cargoWeight   String?
+  priority      DispatchPriority  @default(STANDARD)
+  status        DispatchStatus    @default(PENDING)
+  driverId      String?
+  vehicleId     String?
+  progressPct   Int               @default(0)
+  eta           String?
+  speed         Float?
+  createdBy     String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  driver        User?    @relation("AssignedDriver", fields: [driverId], references: [userId], onDelete: SetNull)
+  vehicle       Vehicle? @relation(fields: [vehicleId], references: [vehicleId], onDelete: SetNull)
+  creator       User?    @relation("CreatedBy", fields: [createdBy], references: [userId], onDelete: SetNull)
+  locations     DriverLocation[]
+
+  @@index([status])
+  @@index([driverId])
+  @@index([vehicleId])
+  @@index([createdAt])
+}
+
+model MaintenanceOrder {
+  id               String              @id @default(uuid())
+  vehicleId        String
+  title            String
+  description      String?
+  priority         MaintenancePriority @default(MEDIUM)
+  status           MaintenanceStatus   @default(SCHEDULED)
+  orderType        MaintenanceType     @default(CORRECTIVE)
+  mechanicName     String?
+  scheduledDate    DateTime?
+  completedDate    DateTime?
+  estimatedCost    Float?
+  actualCost       Float?
+  odometerReading  Float?
+  etaParts         String?
+  invoiceUrl       String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([status])
+  @@index([orderType])
+  @@index([scheduledDate])
+}
+
+model SupportTicket {
+  id          String          @id @default(uuid())
+  driverId    String
+  category    TicketCategory
+  subject     String
+  description String
+  status      TicketStatus    @default(OPEN)
+  priority    TicketPriority  @default(MEDIUM)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  driver User @relation(fields: [driverId], references: [userId], onDelete: Cascade)
+
+  @@index([driverId])
+  @@index([status])
+  @@index([category])
+}
+
+model ComplianceRecord {
+  id           String          @id @default(uuid())
+  vehicleId    String
+  type         ComplianceType
+  documentUrl  String?
+  issueDate    DateTime
+  expiryDate   DateTime
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([expiryDate])
+  @@index([type])
+}
+
+model ServiceVendor {
+  id            String   @id @default(uuid())
+  name          String
+  serviceType   String
+  phone         String?
+  email         String?
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([serviceType])
+}
+
+model VehicleComponent {
+  id                  String    @id @default(uuid())
+  vehicleId           String
+  componentName       String
+  lastReplacementDate DateTime?
+  nextReplacementDue  DateTime?
+  currentCondition    String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([nextReplacementDue])
+}
+
+model PreventiveSchedule {
+  id                String    @id @default(uuid())
+  vehicleId         String
+  title             String
+  description       String?
+  scheduledDate     DateTime
+  completedDate     DateTime?
+  isCompleted       Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([vehicleId])
+  @@index([scheduledDate])
+  @@index([isCompleted])
+}
+
+model AuditLog {
+  id         String         @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  severity   AuditSeverity  @default(INFO)
+  details    Json?
+  createdAt  DateTime       @default(now())
+
+  user User? @relation(fields: [userId], references: [userId], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([entityType])
+  @@index([severity])
+}
+
+model DriverLocation {
+  id         String   @id @default(uuid())
+  dispatchId String
+  latitude   Float
+  longitude  Float
+  speed      Float?
+  timestamp  DateTime @default(now())
+
+  dispatch DispatchRequest @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+
+  @@index([dispatchId])
+  @@index([timestamp])
 }
