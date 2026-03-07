@@ -14,7 +14,8 @@
     "postinstall": "npm run db:generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev --name init"
+      "db:migrate": "prisma migrate dev --name init",
+      "db:seed": "node prisma/seed.js"
   },
   "keywords": [],
   "author": "Agniva",
