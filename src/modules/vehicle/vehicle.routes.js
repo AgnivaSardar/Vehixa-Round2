@@ -3,6 +3,16 @@ const { vehicleService } = require("./vehicle.service");
 
 const router = express.Router();
 
+router.post("/", async (req, res, next) => {
+  try {
+    const vehicle = await vehicleService.create(req.body || {});
+
+    res.status(201).json({ vehicle });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/", async (req, res, next) => {
   try {
     const vehicles = await vehicleService.list({
