@@ -39,30 +39,34 @@ async function getAllDrivers() {
  * Get driver statistics
  */
 async function getDriverStats() {
-  const [total, available, onTrip, offDuty, avgSafetyScore] = await Promise.all([
-    prisma.driverProfile.count(),
-    prisma.driverProfile.count({
-      where: { status: "AVAILABLE" },
-    }),
-    prisma.driverProfile.count({
-      where: { status: "ON_TRIP" },
-    }),
-    prisma.driverProfile.count({
-      where: { status: "OFF_DUTY" },
+  const [statusCounts, aggregate] = await Promise.all([
+    prisma.driverProfile.groupBy({
+      by: ["status"],
+      _count: {
+        _all: true,
+      },
     }),
     prisma.driverProfile.aggregate({
       _avg: {
         safetyScore: true,
       },
+      _count: {
+        _all: true,
+      },
     }),
   ]);
 
+  const countsByStatus = statusCounts.reduce((acc, item) => {
+    acc[item.status] = item._count._all;
+    return acc;
+  }, {});
+
   return {
-    total,
-    available,
-    onTrip,
-    offDuty,
-    avgSafetyScore: Math.round(avgSafetyScore._avg.safetyScore || 0),
+    total: aggregate._count._all,
+    available: countsByStatus.AVAILABLE || 0,
+    onTrip: countsByStatus.ON_TRIP || 0,
+    offDuty: countsByStatus.OFF_DUTY || 0,
+    avgSafetyScore: Math.round(aggregate._avg.safetyScore || 0),
   };
 }
 

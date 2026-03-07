@@ -95,11 +95,19 @@ const parseOptionalDate = (value) => {
   return parsed;
 };
 
-const toVehicleViewModel = async (vehicle, includeAlertCount = false) => {
-  const latestTelemetry = await prisma.telemtery2.findFirst({
-    where: { vehicleId: vehicle.vehicleId },
-    orderBy: { recordedAt: "desc" },
-  });
+const toVehicleViewModel = async (
+  vehicle,
+  includeAlertCount = false,
+  preloadedLatestTelemetry
+) => {
+  let latestTelemetry = preloadedLatestTelemetry;
+
+  if (latestTelemetry === undefined) {
+    latestTelemetry = await prisma.telemtery2.findFirst({
+      where: { vehicleId: vehicle.vehicleId },
+      orderBy: { recordedAt: "desc" },
+    });
+  }
 
   const evaluation = evaluateTelemetry(latestTelemetry);
 
@@ -211,6 +219,12 @@ const vehicleService = {
             email: true,
           },
         },
+        telemetry2: {
+          orderBy: {
+            recordedAt: "desc",
+          },
+          take: 1,
+        },
         _count: {
           select: {
             alerts: {
@@ -224,7 +238,11 @@ const vehicleService = {
       },
     });
 
-    const enrichedVehicles = await Promise.all(vehicles.map((vehicle) => toVehicleViewModel(vehicle, true)));
+    const enrichedVehicles = await Promise.all(
+      vehicles.map((vehicle) =>
+        toVehicleViewModel(vehicle, true, vehicle.telemetry2?.[0] ?? null)
+      )
+    );
 
     return enrichedVehicles;
   },
@@ -239,6 +257,12 @@ const vehicleService = {
             email: true,
           },
         },
+        telemetry2: {
+          orderBy: {
+            recordedAt: "desc",
+          },
+          take: 1,
+        },
       },
     });
 
@@ -246,7 +270,7 @@ const vehicleService = {
       return null;
     }
 
-    return toVehicleViewModel(vehicle, false);
+    return toVehicleViewModel(vehicle, false, vehicle.telemetry2?.[0] ?? null);
   },
 };
 
