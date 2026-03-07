@@ -1,4 +1,4 @@
-const prisma = require("../../config/db.js");
+const { prisma } = require("../../config/db");
 
 /**
  * Get all insurance policies with vehicle details

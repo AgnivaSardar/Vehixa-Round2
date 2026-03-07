@@ -1,4 +1,4 @@
-const prisma = require("../../config/db.js");
+const { prisma } = require("../../config/db");
 
 /**
  * Get maintenance orders with optional filters

@@ -1,8 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting seed...');
+  const seedPassword = 'Vehixa@123';
 
   // Clear existing data (in reverse order of dependencies)
   console.log('🧹 Cleaning existing data...');
@@ -27,6 +29,7 @@ async function main() {
   await prisma.contactMessage.deleteMany();
   await prisma.oTPVerification.deleteMany();
   await prisma.user.deleteMany();
+  const hashedPassword = await bcrypt.hash(seedPassword, 10);
 
   // Create Users
   console.log('👥 Creating users...');
@@ -34,7 +37,7 @@ async function main() {
     data: {
       email: 'admin@vehixa.com',
       name: 'Fleet Administrator',
-      password: '$2a$10$YourHashedPasswordHere', // In production, use proper bcrypt hash
+      password: hashedPassword,
       phone: '+91-9876543210',
       role: 'ADMIN',
       fleetRole: 'ADMIN',
@@ -49,7 +52,7 @@ async function main() {
     data: {
       email: 'manager1@vehixa.com',
       name: 'Rajesh Kumar',
-      password: '$2a$10$YourHashedPasswordHere',
+      password: hashedPassword,
       phone: '+91-9876543211',
       role: 'USER',
       fleetRole: 'MANAGER',
@@ -64,7 +67,7 @@ async function main() {
     data: {
       email: 'manager2@vehixa.com',
       name: 'Priya Sharma',
-      password: '$2a$10$YourHashedPasswordHere',
+      password: hashedPassword,
       phone: '+91-9876543212',
       role: 'USER',
       fleetRole: 'MANAGER',
@@ -79,7 +82,7 @@ async function main() {
     data: {
       email: 'driver1@vehixa.com',
       name: 'Amit Singh',
-      password: '$2a$10$YourHashedPasswordHere',
+      password: hashedPassword,
       phone: '+91-9876543213',
       role: 'USER',
       fleetRole: 'DRIVER',
@@ -94,7 +97,7 @@ async function main() {
     data: {
       email: 'driver2@vehixa.com',
       name: 'Suresh Patel',
-      password: '$2a$10$YourHashedPasswordHere',
+      password: hashedPassword,
       phone: '+91-9876543214',
       role: 'USER',
       fleetRole: 'DRIVER',
@@ -109,7 +112,7 @@ async function main() {
     data: {
       email: 'driver3@vehixa.com',
       name: 'Mohammad Ali',
-      password: '$2a$10$YourHashedPasswordHere',
+      password: hashedPassword,
       phone: '+91-9876543215',
       role: 'USER',
       fleetRole: 'DRIVER',
@@ -124,7 +127,7 @@ async function main() {
     data: {
       email: 'driver4@vehixa.com',
       name: 'Ramesh Yadav',
-      password: '$2a$10$YourHashedPasswordHere',
+      password: hashedPassword,
       phone: '+91-9876543216',
       role: 'USER',
       fleetRole: 'DRIVER',

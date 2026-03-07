@@ -1,4 +1,4 @@
-const prisma = require("../../config/db.js");
+const { prisma } = require("../../config/db");
 
 /**
  * Generate unique ticket number (REQ-XXXX format)
