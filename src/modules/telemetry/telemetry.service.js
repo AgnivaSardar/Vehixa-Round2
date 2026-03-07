@@ -26,6 +26,11 @@ const normalizePayload = (payload) => {
   const vehicleId =
     typeof payload.vehicleId === "string" ? payload.vehicleId.trim() : "";
 
+  const nestedPayload =
+    payload.rawPayload && typeof payload.rawPayload === "object"
+      ? payload.rawPayload
+      : null;
+
   if (!vehicleId) return { error: "vehicleId is required" };
 
   const recordedAtInput = payload.recordedAt
@@ -69,8 +74,9 @@ const normalizePayload = (payload) => {
       vehicleId,
 
       source:
-        typeof payload.source === "string" && payload.source.trim()
-          ? payload.source.trim()
+        typeof firstDefined(payload.source, nestedPayload?.source) === "string" &&
+        firstDefined(payload.source, nestedPayload?.source).trim()
+          ? firstDefined(payload.source, nestedPayload?.source).trim()
           : "API_PUSH",
 
       engineRpm,
@@ -106,6 +112,80 @@ const normalizePayload = (payload) => {
 
       errorCodesCount: toInteger(
         firstDefined(payload.error_codes_count, payload.errorCodesCount)
+      ),
+
+      activeFaultCodes: firstDefined(
+        payload.active_fault_codes,
+        payload.activeFaultCodes,
+        nestedPayload?.active_fault_codes,
+        nestedPayload?.activeFaultCodes
+      ),
+
+      batteryStateOfCharge: toNumber(
+        firstDefined(
+          payload.battery_state_of_charge,
+          payload.batteryStateOfCharge,
+          payload.soc,
+          nestedPayload?.battery_state_of_charge,
+          nestedPayload?.batteryStateOfCharge,
+          nestedPayload?.soc
+        )
+      ),
+
+      batteryTemp: toNumber(
+        firstDefined(
+          payload.battery_temp,
+          payload.batteryTemp,
+          nestedPayload?.battery_temp,
+          nestedPayload?.batteryTemp
+        )
+      ),
+
+      engineLoad: toNumber(
+        firstDefined(
+          payload.engine_load,
+          payload.engineLoad,
+          nestedPayload?.engine_load,
+          nestedPayload?.engineLoad
+        )
+      ),
+
+      inverterTemp: toNumber(
+        firstDefined(
+          payload.inverter_temp,
+          payload.inverterTemp,
+          nestedPayload?.inverter_temp,
+          nestedPayload?.inverterTemp
+        )
+      ),
+
+      motorTemp: toNumber(
+        firstDefined(
+          payload.motor_temp,
+          payload.motorTemp,
+          nestedPayload?.motor_temp,
+          nestedPayload?.motorTemp
+        )
+      ),
+
+      speed: toNumber(
+        firstDefined(
+          payload.speed,
+          payload.vehicle_speed,
+          payload.vehicleSpeed,
+          nestedPayload?.speed,
+          nestedPayload?.vehicle_speed,
+          nestedPayload?.vehicleSpeed
+        )
+      ),
+
+      throttlePosition: toNumber(
+        firstDefined(
+          payload.throttle_position,
+          payload.throttlePosition,
+          nestedPayload?.throttle_position,
+          nestedPayload?.throttlePosition
+        )
       ),
 
       coolantLevel: toNumber(
