@@ -52,7 +52,7 @@ gap:10px;
 flex-wrap:wrap
 }
 
-input[type=text],input[type=number]{
+input[type=text],input[type=number],select{
 width:100%;
 box-sizing:border-box;
 background:#1f2937;
@@ -108,8 +108,14 @@ Set telemetry metrics in real time. Data is sent every random 10-15 seconds only
 <section class="card">
 
 <div class="row">
+<label>Seeded Vehicle</label>
+<select id="vehicleSelect"></select>
+<div></div>
+</div>
+
+<div class="row">
 <label>Vehicle ID</label>
-<input id="vehicleId" type="text">
+<input id="vehicleId" type="text" readonly>
 <div></div>
 </div>
 
@@ -181,6 +187,7 @@ const metricDefinitions=[
 ]
 
 const elements={
+vehicleSelect:document.getElementById("vehicleSelect"),
 vehicleId:document.getElementById("vehicleId"),
 minInterval:document.getElementById("minInterval"),
 maxInterval:document.getElementById("maxInterval"),
@@ -207,6 +214,47 @@ throw new Error(text||`Request failed (${response.status})`)
 }
 
 return response.json()
+}
+
+const formatVehicleOptionLabel=(vehicle)=>{
+const number=vehicle.vehicleNumber||"No Plate"
+const model=[vehicle.manufacturer,vehicle.model].filter(Boolean).join(" ")
+
+return model?`${number} - ${model}`:`${number} - ${vehicle.vehicleId}`
+}
+
+const loadSeededVehicles=async(selectedVehicleId)=>{
+const response=await apiRequest("/api/vehicles")
+const vehicles=Array.isArray(response.vehicles)?response.vehicles:[]
+
+elements.vehicleSelect.innerHTML=""
+
+if(!vehicles.length){
+const option=document.createElement("option")
+option.value=""
+option.textContent="No seeded vehicles found"
+elements.vehicleSelect.appendChild(option)
+elements.vehicleSelect.disabled=true
+elements.vehicleId.value=""
+return []
+}
+
+vehicles.forEach(vehicle=>{
+const option=document.createElement("option")
+option.value=vehicle.vehicleId
+option.textContent=formatVehicleOptionLabel(vehicle)
+elements.vehicleSelect.appendChild(option)
+})
+
+elements.vehicleSelect.disabled=false
+
+const selectedExists=vehicles.some(vehicle=>vehicle.vehicleId===selectedVehicleId)
+const defaultVehicleId=selectedExists?selectedVehicleId:vehicles[0].vehicleId
+
+elements.vehicleSelect.value=defaultVehicleId
+elements.vehicleId.value=defaultVehicleId
+
+return vehicles
 }
 
 const renderMetrics=()=>{
@@ -277,7 +325,7 @@ state.lastResult
 const patchState=async()=>{
 
 const payload={
-vehicleId:elements.vehicleId.value,
+vehicleId:(elements.vehicleSelect.value||elements.vehicleId.value).trim(),
 minIntervalSeconds:Number(elements.minInterval.value),
 maxIntervalSeconds:Number(elements.maxInterval.value),
 metrics:collectMetrics()
@@ -322,9 +370,20 @@ renderStatus(state)
 }
 
 const state=await apiRequest("/api/state")
-elements.vehicleId.value=state.vehicleId
+await loadSeededVehicles(state.vehicleId)
 elements.minInterval.value=state.minIntervalSeconds
 elements.maxInterval.value=state.maxIntervalSeconds
+
+elements.vehicleSelect.onchange=async()=>{
+elements.vehicleId.value=elements.vehicleSelect.value
+
+try{
+elements.error.textContent=""
+await patchState()
+}catch(error){
+elements.error.textContent=error.message
+}
+}
 
 metricDefinitions.forEach(metric=>{
 metricInputs[metric.key].range.value=state.metrics[metric.key]

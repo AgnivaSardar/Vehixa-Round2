@@ -1,4 +1,5 @@
-const { env } = require("../config/env");
+const { prisma } = require("../config/db");
+const { resolveSimulatorVehicles } = require("./seededVehicles");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -84,8 +85,7 @@ const runContinuousSimulator = async () => {
     process.env.SIMULATOR_TARGET_URL ||
     "https://vehixa-round2.onrender.com/api/v1/telemetry";
 
-  const vehicleId =
-    process.env.SIMULATOR_VEHICLE_ID || "81609e52-0b40-4b54-a891-2b0adb813c7b"; // Honda City
+  const { vehicles, source } = await resolveSimulatorVehicles();
 
   const minIntervalSeconds = toPositiveNumber(
     process.env.SIMULATOR_MIN_INTERVAL_SECONDS,
@@ -102,7 +102,13 @@ const runContinuousSimulator = async () => {
   console.log("╚════════════════════════════════════════════════════════════╝");
 
   console.log(`\n📡 Target URL: ${targetUrl}`);
-  console.log(`🚙 Vehicle ID: ${vehicleId}`);
+  console.log(`🚙 Vehicles Loaded: ${vehicles.length} (${source})`);
+  vehicles.forEach((vehicle, index) => {
+    const label = [vehicle.manufacturer, vehicle.model].filter(Boolean).join(" ");
+    console.log(
+      `   ${index + 1}. ${vehicle.vehicleNumber || "N/A"} | ${label || "Unknown"} | ${vehicle.vehicleId}`
+    );
+  });
   console.log(
     `⏱️  Send Interval: ${minIntervalSeconds}-${maxIntervalSeconds}s`
   );
@@ -110,6 +116,7 @@ const runContinuousSimulator = async () => {
   console.log(`\n⏳ Simulator running... Press Ctrl+C to stop.\n`);
 
   let readingIndex = 0;
+  let vehicleCursor = 0;
   let shouldStop = false;
 
   const stopHandler = () => {
@@ -130,11 +137,13 @@ const runContinuousSimulator = async () => {
     const startTime = Date.now();
 
     readingIndex += 1;
+    const activeVehicle = vehicles[vehicleCursor];
+    vehicleCursor = (vehicleCursor + 1) % vehicles.length;
 
     const reading = makeVehicleReading();
 
     const payload = {
-      vehicleId,
+      vehicleId: activeVehicle.vehicleId,
       source: "SIMULATOR",
       ...reading,
       rawPayload: reading,
@@ -146,13 +155,15 @@ const runContinuousSimulator = async () => {
       console.log(
         `[${toDateString(new Date())}] ✅ Reading #${readingIndex} sent | RPM: ${
           reading.engineRpm
-        } | Temp: ${reading.coolantTemp}°C | FuelEff: ${
-          reading.fuelEfficiency
+        } | Temp: ${reading.coolantTemp}°C | FuelEff: ${reading.fuelEfficiency} | Vehicle: ${
+          activeVehicle.vehicleNumber || activeVehicle.vehicleId
         }`
       );
     } catch (error) {
       console.log(
-        `[${toDateString(new Date())}] ❌ Reading #${readingIndex} failed | ${error.message}`
+        `[${toDateString(new Date())}] ❌ Reading #${readingIndex} failed | Vehicle: ${
+          activeVehicle.vehicleNumber || activeVehicle.vehicleId
+        } | ${error.message}`
       );
     }
 
@@ -194,9 +205,11 @@ const runContinuousSimulator = async () => {
   process.removeListener("SIGTERM", stopHandler);
 
   console.log("✋ Simulator stopped.\n");
+  await prisma.$disconnect();
 };
 
-runContinuousSimulator().catch((error) => {
+runContinuousSimulator().catch(async (error) => {
   console.error("[simulator] Fatal error:", error.message);
+  await prisma.$disconnect().catch(() => {});
   process.exit(1);
 });

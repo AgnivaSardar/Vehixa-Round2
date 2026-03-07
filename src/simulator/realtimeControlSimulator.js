@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
-const { env } = require("../config/env");
+const { prisma } = require("../config/db");
+const { resolveSimulatorVehicles } = require("./seededVehicles");
 
 const app = express();
 app.use(express.json());
@@ -50,8 +51,8 @@ const defaultTargetUrl =
 
 const state = {
   targetUrl: defaultTargetUrl,
-  vehicleId:
-    process.env.SIMULATOR_CONTROL_VEHICLE_ID || "b7a09ab1-5c9b-4730-b988-09545e3fb45d", // Tesla Model S
+  vehicleId: null,
+  availableVehicles: [],
 
   source: "SIMULATOR",
 
@@ -96,6 +97,26 @@ const state = {
 
 let loopPromise = null;
 
+const initializeSeededVehicles = async () => {
+  const { vehicles, defaultVehicleId, source } = await resolveSimulatorVehicles({
+    vehicleId: process.env.SIMULATOR_CONTROL_VEHICLE_ID,
+  });
+
+  state.availableVehicles = vehicles;
+
+  const hasCurrentSelection = vehicles.some(
+    (vehicle) => vehicle.vehicleId === state.vehicleId
+  );
+
+  if (!hasCurrentSelection) {
+    state.vehicleId = defaultVehicleId;
+  }
+
+  console.log(
+    `[control-simulator] Loaded ${vehicles.length} vehicle(s) from ${source}.`
+  );
+};
+
 const getRandomIntervalSeconds = () => {
   const min = Math.min(state.minIntervalSeconds, state.maxIntervalSeconds);
   const max = Math.max(state.minIntervalSeconds, state.maxIntervalSeconds);
@@ -119,6 +140,12 @@ const waitWithStopCheck = async (durationMs) => {
 };
 
 const postTelemetry = async () => {
+  if (!state.vehicleId) {
+    throw new Error(
+      "No simulator vehicle available. Seed data with `npm run db:seed` first."
+    );
+  }
+
   const payload = {
     vehicleId: state.vehicleId,
     source: state.source,
@@ -225,7 +252,14 @@ const applyControlPatch = (payload) => {
   if (!payload || typeof payload !== "object") return;
 
   if (typeof payload.vehicleId === "string" && payload.vehicleId.trim()) {
-    state.vehicleId = payload.vehicleId.trim();
+    const requestedVehicleId = payload.vehicleId.trim();
+    const existsInAvailableVehicles = state.availableVehicles.some(
+      (vehicle) => vehicle.vehicleId === requestedVehicleId
+    );
+
+    if (existsInAvailableVehicles || state.availableVehicles.length === 0) {
+      state.vehicleId = requestedVehicleId;
+    }
   }
 
   if (payload.minIntervalSeconds !== undefined) {
@@ -251,6 +285,13 @@ app.get("/", (_, res) => {
 
 app.get("/api/state", (_, res) => {
   res.json(serializeState());
+});
+
+app.get("/api/vehicles", (_, res) => {
+  res.json({
+    count: state.availableVehicles.length,
+    vehicles: state.availableVehicles,
+  });
 });
 
 app.patch("/api/state", (req, res) => {
@@ -290,23 +331,52 @@ const controlPort = toPositiveInteger(
   5055
 );
 
-const server = app.listen(controlPort, () => {
-  console.log("\n╔════════════════════════════════════════════════════════════╗");
-  console.log("║    🎛️  ROUND2 REAL-TIME CONTROL SIMULATOR (LIVE)          ║");
-  console.log("╚════════════════════════════════════════════════════════════╝");
+let server = null;
 
-  console.log(`\nOpen control panel: http://localhost:${controlPort}`);
-  console.log(`Target ingest endpoint: ${state.targetUrl}`);
-  console.log("Streaming interval: random 10-15 seconds when active");
-  console.log("Use Start/Stop in the browser to control streaming.\n");
-});
-
-const shutdown = () => {
+const shutdown = async () => {
   state.isActive = false;
   state.nextSendAt = null;
 
-  server.close(() => process.exit(0));
+  if (!server) {
+    await prisma.$disconnect().catch(() => {});
+    process.exit(0);
+    return;
+  }
+
+  server.close(async () => {
+    await prisma.$disconnect().catch(() => {});
+    process.exit(0);
+  });
 };
 
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+const start = async () => {
+  try {
+    await initializeSeededVehicles();
+  } catch (error) {
+    console.error(`[control-simulator] ${error.message}`);
+    await prisma.$disconnect().catch(() => {});
+    process.exit(1);
+  }
+
+  server = app.listen(controlPort, () => {
+    console.log("\n╔════════════════════════════════════════════════════════════╗");
+    console.log("║    🎛️  ROUND2 REAL-TIME CONTROL SIMULATOR (LIVE)          ║");
+    console.log("╚════════════════════════════════════════════════════════════╝");
+
+    console.log(`\nOpen control panel: http://localhost:${controlPort}`);
+    console.log(`Target ingest endpoint: ${state.targetUrl}`);
+    console.log(`Seeded vehicles loaded: ${state.availableVehicles.length}`);
+    console.log("Streaming interval: random 10-15 seconds when active");
+    console.log("Use Start/Stop in the browser to control streaming.\n");
+  });
+};
+
+void start();
+
+process.on("SIGINT", () => {
+  void shutdown();
+});
+
+process.on("SIGTERM", () => {
+  void shutdown();
+});
