@@ -99,7 +99,7 @@ async function getActiveTrips() {
           currentLocation: true,
         },
       },
-      locations: {
+      driverLocations: {
         orderBy: {
           timestamp: "desc",
         },

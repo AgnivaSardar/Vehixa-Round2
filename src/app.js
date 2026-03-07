@@ -16,8 +16,8 @@ app.use(
       "https://round3-alpha.vercel.app",
       "https://vehicle-telemetry-round3.vercel.app",
     ],
-    methods: ["GET", "POST", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
